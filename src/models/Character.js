@@ -3,12 +3,13 @@ const db = require('../db/create')
 
 const Character = db.define('Character', {
   image: {
-    type: DataTypes.STRING
-    // allowNull: false
+    type: DataTypes.STRING,
+    allowNull: false
   },
   name: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: false,
+    unique: true
   },
   age: {
     type: DataTypes.NUMBER,
@@ -19,8 +20,8 @@ const Character = db.define('Character', {
     allowNull: false
   },
   history: {
-    type: DataTypes.STRING,
-    allowNull: false
+    type: DataTypes.STRING
+
   }
 })
 

@@ -3,12 +3,13 @@ const db = require('../db/create')
 
 const Movie = db.define('Movie', {
   image: {
-    type: DataTypes.STRING
-    // allowNull: false
+    type: DataTypes.STRING,
+    allowNull: false
   },
   title: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: false,
+    unique: true
   },
   creationDate: {
     type: DataTypes.DATEONLY,

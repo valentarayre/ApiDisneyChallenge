@@ -2,38 +2,40 @@ const jwt = require('jsonwebtoken')
 const bcrypt = require('bcrypt')
 const Users = require('../models/User')
 const config = require('../config')
+const { registerSchema, loginSchema } = require('../validator')
 
 module.exports.registerUser = async (req, res) => {
-  try {
-    const { name, email, password } = req.body
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: 'Error: missing parameters ' })
+  const validReq = registerSchema.validate(req.body)
+  const { value, error } = validReq
+  if (error) {
+    res.status(400).json({ message: 'Invalid request' })
+  } else {
+    const { name, email, password } = value
+
+    const emailUnique = await Users.findOne({ where: { email } })
+    if (!(emailUnique === null)) {
+      res.status(400).json({ message: 'Email Invalid' })
+    } else {
+      const passwordHash = await bcrypt.hash(password, config.saltRounds)
+      const user = await Users.create({
+        name,
+        email,
+        password: passwordHash
+      })
+
+      res.status(201).json({ user })
     }
-
-    const passwordHash = await bcrypt.hash(password, config.saltRounds)
-    const user = await Users.create({
-      name,
-      email,
-      password: passwordHash
-    })
-
-    res.status(201).json({ user })
-  } catch (error) {
-    console.error(error)
-
-    res.status(500).json({
-      msg: 'Error server'
-    })
   }
 }
 
 module.exports.authUser = async (req, res) => {
-  try {
-    const { email, password } = req.body
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Error: missing parameters ' })
-    }
+  const validReq = loginSchema.validate(req.body)
+  const { value, error } = validReq
 
+  if (error) {
+    res.status(400).json({ message: 'Invalid request' })
+  } else {
+    const { email, password } = value
     const user = await Users.findOne({ where: { email } })
     if (user === null) {
       res.status(400).json({ message: 'Email or Password Invalid' })
@@ -44,23 +46,18 @@ module.exports.authUser = async (req, res) => {
 
     if (!authPassword) {
       res.status(400).json({ message: 'Email or Password Invalid' })
+    } else {
+      const userToken = {
+        id: user.id,
+        email: user.email
+      }
+
+      const token = jwt.sign(userToken, config.TOKEN_SECRET, { expiresIn: '1h' })
+
+      res.header('auth-token', token).json({
+        error: null,
+        data: { token }
+      })
     }
-
-    const userToken = {
-      id: user.id,
-      email: user.email
-    }
-
-    const token = jwt.sign(userToken, config.TOKEN_SECRET, { expiresIn: '1800s' })
-
-    res.json({ token })
-
-    // res.json({ message: project instanceof Users, name: project.name })
-  } catch (error) {
-    console.error(error)
-
-    res.status(500).json({
-      msg: 'Error server'
-    })
   }
 }
