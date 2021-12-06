@@ -1,5 +1,9 @@
 const Joi = require('joi')
 
+module.exports.genreSchema = Joi.object({
+  name: Joi.string().min(2).lowercase().required()
+})
+
 module.exports.characterSchema = Joi.object({
   name: Joi.string().min(2).lowercase().required(),
   age: Joi.number().min(1).required(),
@@ -22,12 +26,13 @@ module.exports.putMovieSchema = Joi.object({
 module.exports.movieSchema = Joi.object({
   title: Joi.string().min(2).lowercase().required(),
   creationDate: Joi.date().required(),
-  score: Joi.number().min(1).max(5).integer().required()
+  score: Joi.number().min(1).max(5).integer().required(),
+  GenreId: Joi.number().required()
 })
 
 module.exports.movieCharacterSchema = Joi.object({
   movieId: Joi.number().required(),
-  actorId: Joi.number().required()
+  characterId: Joi.number().required()
 })
 
 module.exports.registerSchema = Joi.object({

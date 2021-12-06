@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize')
 const db = require('../db/create')
+const GenreId = require('./Genre')
 
 const Movie = db.define('Movie', {
   image: {
@@ -22,7 +23,12 @@ const Movie = db.define('Movie', {
       min: 0,
       max: 4
     }
+  },
+  GenreId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
   }
 })
 
+Movie.belongsTo(GenreId, { foreignKey: 'GenreId' })
 module.exports = Movie
