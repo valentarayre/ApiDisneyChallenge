@@ -52,7 +52,7 @@ module.exports.authUser = async (req, res) => {
         email: user.email
       }
 
-      const token = jwt.sign(userToken, config.TOKEN_SECRET, { expiresIn: '1h' })
+      const token = jwt.sign(userToken, config.TOKEN_SECRET)
 
       res.header('auth-token', token).json({
         error: null,

@@ -1,7 +1,7 @@
 const app = require('./app')
 const config = require('./config')
 const db = require('./db/create')
-require('./db/connection')
+require('./models/index')
 
 app.listen(config.PORT)
 

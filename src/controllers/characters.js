@@ -1,6 +1,5 @@
 const { deletePicture } = require('../middleware/uploadPicture')
 const Characters = require('../models/Character')
-const GenreMovie = require('../models/GenreMovie')
 const { characterSchema, putCharacterSchema } = require('../validator')
 const Sequelize = require('sequelize')
 const MovieCharacter = require('../models/MovieCharacter')
@@ -15,11 +14,16 @@ module.exports.getCharacters = async (req, res) => {
     } else if (age) {
       search = await Characters.findAll({ where: { age: req.query.age } })
     } else if (idMovie) {
-      search = await MovieCharacter.findAll({ where: { movieId: req.query.idMovie } })
-
-      Object.keys(req.query).length === 0
-        ? search = true
-        : search = false
+      const movie = await MovieCharacter.findAll({ where: { movieId: req.query.idMovie } })
+      if (movie.length === 0) search = { message: 'No Movies' }
+      else {
+        for await (const x of movie) {
+          const character = await Characters.findOne({ where: { id: x.dataValues.characterId } })
+          search
+            ? search.push(character.dataValues)
+            : search = [character.dataValues]
+        }
+      }
     } else { res.status(400).json('No Querry') }
     res.json(search)
   } else {
@@ -34,14 +38,15 @@ module.exports.getCharacterId = async (req, res) => {
 
   const characterID = await Characters.findByPk(id)
 
-  const moviesCharacter = await GenreMovie.findAll({
+  const moviesCharacter = await MovieCharacter.findAll({
     where: { CharacterId: id }
   })
 
   if (characterID) {
-    moviesCharacter
-      ? res.json({ ...characterID.dataValues, ...moviesCharacter })
-      : res.json({ ...characterID.dataValues })
+    if (!moviesCharacter) res.json({ ...characterID.dataValues })
+    else {
+      res.json({ characterID, moviesCharacter })
+    }
   } else {
     res.status(400).json({
       msg: `Character for id ${id} does not exist in DB`
@@ -51,7 +56,7 @@ module.exports.getCharacterId = async (req, res) => {
 
 module.exports.postCharacter = async (req, res) => {
   const validReq = characterSchema.validate(req.body)
-  if (!req.file) return res.status(400).json({ message: 'Invalid request' })
+  if (!req.file) return res.status(400).json({ message: 'Invalid request, image' })
   const { filename } = req.file
   const { value, error } = validReq
   if (error) {
@@ -115,18 +120,16 @@ module.exports.deleteCharacter = async (req, res) => {
 
     if (!characterID) {
       return res.status(404).send(`El Character (${id}) not found`)
+    } else {
+      MovieCharacter.destroy({ where: { characterId: id } })
+
+      await deletePicture(characterID.image)
+
+      await characterID.destroy()
+
+      res.json({ ...characterID.dataValues })
     }
-
-    await deletePicture(characterID.image)
-    await characterID.destroy()
-
-    res.json({ ...characterID.dataValues })
   } catch (error) {
     res.status(500).json(error)
   }
 }
-/*
-GET /characters?name=nombre
-● GET /characters?age=edad
-● GET /characters?movies=idMovie
-*/

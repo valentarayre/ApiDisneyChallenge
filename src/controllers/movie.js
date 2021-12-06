@@ -1,5 +1,7 @@
 const { deletePicture } = require('../middleware/uploadPicture')
+const Genre = require('../models/Genre')
 const Movies = require('../models/Movie')
+const MovieCharacter = require('../models/MovieCharacter')
 const { movieSchema, putMovieSchema } = require('../validator')
 
 module.exports.getMovies = async (req, res) => {
@@ -11,9 +13,13 @@ module.exports.getMovieId = async (req, res) => {
   const { id } = req.params
 
   const movie = await Movies.findByPk(id)
+  const moviesCharacter = await MovieCharacter.findAll({
+    where: { MovieId: id }
+  })
 
   if (movie) {
-    res.json({ movie })
+    if (!moviesCharacter) res.json({ ...movie.dataValues })
+    else { res.json({ movie, moviesCharacter }) }
   } else {
     res.status(400).json({
       msg: `Movie for id ${id} does not exist in DB`
@@ -30,15 +36,29 @@ module.exports.postMovie = async (req, res) => {
     deletePicture(filename)
     res.status(400).json({ message: 'Invalid request', error: error.message })
   } else {
-    const { title, creationDate, score } = value
+    const { title, creationDate, score, GenreId } = value
     const titleUnique = await Movies.findOne({ where: { title } })
+    const GenreIdFind = await Genre.findOne({ where: { id: GenreId } })
+
     if (!(titleUnique === null)) {
       deletePicture(filename)
       res.status(400).json({ message: 'Title Invalid: the title has to be unique' })
+    } else if ((GenreIdFind === null)) {
+      deletePicture(filename)
+      res.status(400).json({ message: 'Genre Invalid' })
     } else {
-      const movie = await Movies.create({ image: filename, title, creationDate, score })
-      if (movie) res.status(200).json({ movie })
-      else res.status(500).json({ msg: 'Error server' })
+      try {
+        const numGenreId = parseInt(GenreId)
+        const movie = await Movies.create({ image: filename, title, creationDate, score, GenreId: numGenreId })
+        if (movie) {
+          res.status(200).json({ movie })
+        } else {
+          res.status(500).json({ msg: 'Error server' })
+        }
+      } catch (error) {
+        deletePicture(filename)
+        res.status(500).json({ error })
+      }
     }
   }
 }
@@ -51,6 +71,7 @@ module.exports.deleteMovie = async (req, res) => {
     if (!MovieID) {
       return res.status(404).send(`El Movie (${id}) not found`)
     }
+    MovieCharacter.destroy({ where: { movieID: id } })
 
     await deletePicture(MovieID.image)
     await MovieID.destroy()

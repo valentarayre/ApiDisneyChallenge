@@ -13,13 +13,13 @@ const MovieCharacter = db.define('MovieCharacter', {
     type: DataTypes.INTEGER,
     allowNull: false
   },
-  actorId: {
+  characterId: {
     type: DataTypes.INTEGER,
     allowNull: false
   }
 })
 MovieCharacter.belongsTo(Character, {
-  foreignKey: 'actorId'
+  foreignKey: 'characterId'
 })
 MovieCharacter.belongsTo(Movie, {
   foreignKey: 'movieId'
